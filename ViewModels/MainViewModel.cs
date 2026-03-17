@@ -5,6 +5,9 @@ using VersionManager.Helpers;
 using VersionManager.Models;
 using VersionManager.Services.Interfaces;
 using VersionManager.ViewModels.Base;
+using System.Windows;
+using VersionManager.Models;
+using VersionManager.Services.Interfaces;
 
 namespace VersionManager.ViewModels;
 
@@ -29,6 +32,9 @@ public sealed class MainViewModel : ViewModelBase
     private string _selectedFileSize = "-";
     private string _selectedFileModified = "-";
     private string _selectedFileSha256 = "-";
+
+    private readonly ISettingsService _settingsService;
+    private AppSettings _appSettings;
 
     private VersionInfo? _selectedVersion;
     private ZipTreeNodeViewModel? _selectedZipNode;
@@ -154,20 +160,30 @@ public sealed class MainViewModel : ViewModelBase
     public AsyncRelayCommand RefreshCommand { get; }
     public RelayCommand BrowseZipCommand { get; }
     public RelayCommand CreateNewVersionCommand { get; }
+    public RelayCommand OpenApiSettingsCommand { get; }
+
 
     public MainViewModel()
-        : this(new Services.ApiService(), new Services.ZipService())
+        : this(new Services.ApiService(), new Services.ZipService(), new Services.SettingsService())
     {
     }
 
-    public MainViewModel(IApiService apiService, IZipService zipService)
+    public MainViewModel(
+        IApiService apiService,
+        IZipService zipService,
+        ISettingsService settingsService)
     {
         _apiService = apiService;
         _zipService = zipService;
+        _settingsService = settingsService;
+
+        _appSettings = _settingsService.Load();
+        _apiUrl = _appSettings.ApiUrl;
 
         RefreshCommand = new AsyncRelayCommand(RefreshDataAsync);
         BrowseZipCommand = new RelayCommand(BrowseZip);
         CreateNewVersionCommand = new RelayCommand(CreateNewVersion);
+        OpenApiSettingsCommand = new RelayCommand(OpenApiSettings);
 
         InitializeWorkflow();
         _ = RefreshDataAsync();
@@ -194,7 +210,7 @@ public sealed class MainViewModel : ViewModelBase
 
             var status = await _apiService.GetApiStatusAsync();
             LatestVersion = status.LatestVersion;
-            ApiUrl = status.ApiUrl;
+            ApiUrl = _appSettings.ApiUrl;
             IsApiConnected = status.IsConnected;
             LastPingTime = status.LastPingTime;
 
@@ -324,6 +340,30 @@ public sealed class MainViewModel : ViewModelBase
         {
             AddLog($"Erreur détail fichier : {ex.Message}");
         }
+    }
+
+    private void OpenApiSettings()
+    {
+        var window = new ApiSettingsWindow(ApiUrl)
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        bool? result = window.ShowDialog();
+        if (result != true)
+            return;
+
+        ApiUrl = window.ApiUrl.Trim();
+
+        if (!Uri.TryCreate(window.ApiUrl.Trim(), UriKind.Absolute, out _))
+        {
+            MessageBox.Show("L'URL saisie n'est pas valide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        _appSettings.ApiUrl = ApiUrl;
+        _settingsService.Save(_appSettings);
+
+        AddLog($"URL API mise à jour : {ApiUrl}");
     }
 
     private void ClearSelectedFileDetails()

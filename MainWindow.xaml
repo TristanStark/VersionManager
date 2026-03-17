@@ -257,14 +257,46 @@
             <!-- Left panel -->
             <StackPanel Grid.Column="0">
                 <Border Style="{StaticResource CardBorderStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Connexion API" Style="{StaticResource SectionTitleStyle}"/>
-                        <TextBlock Text="{Binding IsApiConnected, StringFormat=API : {0}}"/>
-                        <TextBlock Text="{Binding ApiUrl, StringFormat=URL : {0}}" Margin="0,8,0,0" TextWrapping="Wrap"/>
-                        <TextBlock Text="{Binding LastPingTime, StringFormat=Dernier ping : {0:dd/MM/yyyy HH:mm:ss}}" Margin="0,8,0,0"/>
-                    </StackPanel>
-                </Border>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Connexion API"
+                               Style="{StaticResource SectionTitleStyle}"
+                               Margin="0,0,0,0"/>
+                            <Button Grid.Column="1"
+                                Command="{Binding OpenApiSettingsCommand}"
+                                Width="32"
+                                Height="32"
+                                Padding="0"
+                                Margin="8,0,0,0"
+                                Background="#2C313C"
+                                BorderBrush="#3A3F4B"
+                                ToolTip="Modifier l'URL de l'API">
+                                                        <TextBlock Text="⚙"
+                                       FontSize="15"
+                                       Foreground="#E8ECF3"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                            </Button>
+                        </Grid>
+
+                        <StackPanel Grid.Row="1" Margin="0,12,0,0">
+                            <TextBlock Text="{Binding IsApiConnected, StringFormat=API : {0}}"/>
+                            <TextBlock Text="{Binding ApiUrl, StringFormat=URL : {0}}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding LastPingTime, StringFormat=Dernier ping : {0:dd/MM/yyyy HH:mm:ss}}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
                 <Border Style="{StaticResource CardBorderStyle}">
                     <StackPanel>
                         <TextBlock Text="ZIP sélectionné" Style="{StaticResource SectionTitleStyle}"/>
