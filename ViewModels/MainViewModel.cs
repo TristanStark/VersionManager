@@ -8,6 +8,7 @@ using VersionManager.ViewModels.Base;
 using System.Windows;
 using VersionManager.Models;
 using VersionManager.Services.Interfaces;
+using System.Runtime.Serialization;
 
 namespace VersionManager.ViewModels;
 
@@ -39,6 +40,7 @@ public sealed class MainViewModel : ViewModelBase
     private VersionInfo? _selectedVersion;
     private ZipTreeNodeViewModel? _selectedZipNode;
     private bool _isBusy;
+    private readonly IVersionBuildService _versionBuildService;
 
     public string LatestVersion
     {
@@ -159,7 +161,7 @@ public sealed class MainViewModel : ViewModelBase
 
     public AsyncRelayCommand RefreshCommand { get; }
     public RelayCommand BrowseZipCommand { get; }
-    public RelayCommand CreateNewVersionCommand { get; }
+    public AsyncRelayCommand CreateNewVersionCommand { get; }
     public RelayCommand OpenApiSettingsCommand { get; }
 
 
@@ -176,13 +178,14 @@ public sealed class MainViewModel : ViewModelBase
         _apiService = apiService;
         _zipService = zipService;
         _settingsService = settingsService;
+        _versionBuildService = new Services.VersionBuildService();
 
         _appSettings = _settingsService.Load();
         _apiUrl = _appSettings.ApiUrl;
 
         RefreshCommand = new AsyncRelayCommand(RefreshDataAsync);
         BrowseZipCommand = new RelayCommand(BrowseZip);
-        CreateNewVersionCommand = new RelayCommand(CreateNewVersion);
+        CreateNewVersionCommand = new AsyncRelayCommand(CreateNewVersionAsync);
         OpenApiSettingsCommand = new RelayCommand(OpenApiSettings);
 
         InitializeWorkflow();
@@ -387,5 +390,101 @@ public sealed class MainViewModel : ViewModelBase
     private void AddLog(string message)
     {
         Logs.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
+    }
+
+    public static string IncrementVersion(string version, int maxPerSegment = 9)
+    {
+        if (string.IsNullOrWhiteSpace(version))
+            throw new ArgumentException("La version ne peut pas être vide.", nameof(version));
+
+        string[] parts = version.Split('.');
+        int[] numbers = new int[parts.Length];
+
+        for (int i = 0; i < parts.Length; i++)
+        {
+            if (!int.TryParse(parts[i], out numbers[i]))
+                throw new FormatException($"Segment invalide : '{parts[i]}'");
+
+            if (numbers[i] < 0 || numbers[i] > maxPerSegment)
+                throw new FormatException(
+                    $"Le segment '{numbers[i]}' dépasse la valeur max autorisée ({maxPerSegment}).");
+        }
+
+        int carry = 1;
+
+        for (int i = numbers.Length - 1; i >= 0; i--)
+        {
+            if (carry == 0)
+                break;
+
+            numbers[i] += carry;
+
+            if (numbers[i] > maxPerSegment)
+            {
+                numbers[i] = 0;
+                carry = 1;
+            }
+            else
+            {
+                carry = 0;
+            }
+        }
+
+        if (carry == 1)
+        {
+            // Cas où tout a débordé : 9.9.9 -> 1.0.0.0
+            int[] extended = new int[numbers.Length + 1];
+            extended[0] = 1;
+            Array.Copy(numbers, 0, extended, 1, numbers.Length);
+            numbers = extended;
+        }
+
+        return string.Join(".", numbers);
+    }
+    private string? GetNewVersionNumber()
+    {
+        string oldVersion = LatestVersion;
+        return IncrementVersion(oldVersion);
+    }
+
+    private async Task CreateNewVersionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedZipPath) || !File.Exists(SelectedZipPath))
+        {
+            AddLog("Aucun ZIP de patch sélectionné.");
+            return;
+        }
+
+        string? newVersion = GetNewVersionNumber();
+        if (string.IsNullOrWhiteSpace(newVersion))
+            return;
+
+        try
+        {
+            IsBusy = true;
+            AddLog($"Démarrage de la création de la version {newVersion}...");
+
+            var logProgress = new Progress<string>(msg => AddLog(msg));
+            var valueProgress = new Progress<double>(v => ProgressValue = v);
+
+            var result = await _versionBuildService.BuildAndUploadAsync(
+                SelectedZipPath,
+                newVersion,
+                logProgress,
+                valueProgress);
+
+            AddLog(result.Message);
+
+            if (result.Success)
+                await RefreshDataAsync();
+        }
+        catch (Exception ex)
+        {
+            AddLog($"Erreur : {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }

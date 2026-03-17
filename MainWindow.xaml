@@ -187,7 +187,16 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#E5E7EB"/>
+            <Setter Property="Foreground" Value="#111827"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderBrush" Value="#C7CDD8"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+
         <Style TargetType="ListBox">
             <Setter Property="Background" Value="#252932"/>
             <Setter Property="Foreground" Value="White"/>

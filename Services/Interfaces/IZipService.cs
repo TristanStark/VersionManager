@@ -8,4 +8,9 @@ public interface IZipService
     List<ZipEntryInfo> ReadEntries(string zipPath);
     List<ZipTreeNodeViewModel> BuildTree(IEnumerable<ZipEntryInfo> entries);
     FileDetailInfo BuildFileDetails(string zipPath, string entryFullName);
+
+    Task ExtractAsync(string zipPath, string destinationFolder);
+    Task CreateZipAsync(string sourceFolder, string outputZipPath);
+
+
 }

@@ -150,4 +150,24 @@ public sealed class ZipService : IZipService
             FileType = Path.GetExtension(entry.Name)
         };
     }
+
+    public Task ExtractAsync(string zipPath, string destinationFolder)
+    {
+        if (Directory.Exists(destinationFolder))
+            Directory.Delete(destinationFolder, true);
+
+        Directory.CreateDirectory(destinationFolder);
+        System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, destinationFolder);
+        return Task.CompletedTask;
+    }
+
+    public Task CreateZipAsync(string sourceFolder, string outputZipPath)
+    {
+        if (File.Exists(outputZipPath))
+            File.Delete(outputZipPath);
+
+        System.IO.Compression.ZipFile.CreateFromDirectory(sourceFolder, outputZipPath);
+        return Task.CompletedTask;
+    }
+
 }
