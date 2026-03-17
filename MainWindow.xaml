@@ -80,15 +80,15 @@
         </Style>
 
         <HierarchicalDataTemplate DataType="{x:Type vm:ZipTreeNodeViewModel}"
-                                  ItemsSource="{Binding Children}">
+                          ItemsSource="{Binding Children}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding Icon}" Margin="0,0,8,0"/>
-                <TextBlock Text="{Binding Name}" />
-                <TextBlock Text="  "/>
+                <TextBlock Text="{Binding Icon}" Margin="0,0,8,0" Foreground="#E8ECF3"/>
+                <TextBlock Text="{Binding Name}" Foreground="#E8ECF3"/>
+                <TextBlock Text="  " Foreground="#E8ECF3"/>
                 <TextBlock Text="{Binding DisplaySize}" Foreground="#9AA7B8"/>
             </StackPanel>
         </HierarchicalDataTemplate>
-
+        
         <Style TargetType="TreeView">
             <Setter Property="Background" Value="#252932"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -96,10 +96,98 @@
         </Style>
 
         <Style TargetType="TreeViewItem">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="#E8ECF3"/>
+            <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Margin" Value="0,2,0,2"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TreeViewItem">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <ToggleButton x:Name="Expander"
+                                  ClickMode="Press"
+                                  IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                  Width="16"
+                                  Height="16"
+                                  Margin="2"
+                                  Focusable="False"
+                                  Foreground="#E8ECF3"
+                                  Background="Transparent"
+                                  BorderBrush="Transparent"
+                                  Template="{StaticResource ExpandCollapseToggleStyle}"/>
+
+                            <Border x:Name="Bd"
+                            Grid.Column="1"
+                            Background="Transparent"
+                            CornerRadius="4"
+                            Padding="{TemplateBinding Padding}">
+                                <ContentPresenter x:Name="PART_Header"
+                                          ContentSource="Header"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                            </Border>
+
+                            <ItemsPresenter x:Name="ItemsHost"
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Visibility="Collapsed"/>
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ItemsHost" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+                            </Trigger>
+
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#374151"/>
+                            </Trigger>
+
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#2C313C"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
+        <Style x:Key="ExpandCollapseToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent">
+                            <TextBlock x:Name="Arrow"
+                               Text="▶"
+                               Foreground="#E8ECF3"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Arrow" Property="Text" Value="▼"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
         <Style TargetType="ListBox">
             <Setter Property="Background" Value="#252932"/>
             <Setter Property="Foreground" Value="White"/>
@@ -195,7 +283,7 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,6,0,6">
                                         <Ellipse Width="10" Height="10" Margin="0,4,10,0" Fill="#60A5FA"/>
                                         <StackPanel>
-                                            <TextBlock Text="{Binding Label}" />
+                                            <TextBlock Text="{Binding Label}" Foreground="#E8ECF3"/>
                                             <TextBlock Text="{Binding State}" Foreground="#AAB4C3" FontSize="12"/>
                                         </StackPanel>
                                     </StackPanel>
