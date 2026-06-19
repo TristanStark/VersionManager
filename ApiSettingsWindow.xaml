@@ -1,9 +1,9 @@
-﻿<Window x:Class="VersionManager.ApiSettingsWindow"
+<Window x:Class="VersionManager.ApiSettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Paramètres API"
-        Height="180"
-        Width="520"
+        Title="Paramètres Artifactory"
+        Height="460"
+        Width="620"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#1E1F22">
@@ -12,25 +12,131 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="URL de l'API"
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="170"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.ColumnSpan="2"
+                   Text="Connexion Artifactory"
                    Foreground="#E8ECF3"
                    FontSize="16"
                    FontWeight="SemiBold"/>
 
+        <TextBlock Grid.Row="1"
+                   Text="URL Artifactory"
+                   Foreground="#E8ECF3"
+                   VerticalAlignment="Center"
+                   Margin="0,16,12,0"/>
         <TextBox x:Name="ApiUrlTextBox"
                  Grid.Row="1"
-                 Margin="0,12,0,0"
-                 Height="34"
+                 Grid.Column="1"
+                 Margin="0,16,0,0"
+                 Height="32"
                  Background="#252932"
                  Foreground="White"
                  BorderBrush="#3A3F4B"
                  Text="{Binding ApiUrl, UpdateSourceTrigger=PropertyChanged}" />
 
-        <StackPanel Grid.Row="3"
+        <TextBlock Grid.Row="2"
+                   Text="Repository key"
+                   Foreground="#E8ECF3"
+                   VerticalAlignment="Center"
+                   Margin="0,10,12,0"/>
+        <TextBox Grid.Row="2"
+                 Grid.Column="1"
+                 Margin="0,10,0,0"
+                 Height="32"
+                 Background="#252932"
+                 Foreground="White"
+                 BorderBrush="#3A3F4B"
+                 Text="{Binding RepositoryKey, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Grid.Row="3"
+                   Text="Préfixe optionnel"
+                   Foreground="#E8ECF3"
+                   VerticalAlignment="Center"
+                   Margin="0,10,12,0"/>
+        <TextBox Grid.Row="3"
+                 Grid.Column="1"
+                 Margin="0,10,0,0"
+                 Height="32"
+                 Background="#252932"
+                 Foreground="White"
+                 BorderBrush="#3A3F4B"
+                 ToolTip="Optionnel. Exemple : releases/app"
+                 Text="{Binding PathPrefix, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Grid.Row="4"
+                   Text="Nom du ZIP"
+                   Foreground="#E8ECF3"
+                   VerticalAlignment="Center"
+                   Margin="0,10,12,0"/>
+        <TextBox Grid.Row="4"
+                 Grid.Column="1"
+                 Margin="0,10,0,0"
+                 Height="32"
+                 Background="#252932"
+                 Foreground="White"
+                 BorderBrush="#3A3F4B"
+                 ToolTip="Utilise {version} si le nom du ZIP contient la version."
+                 Text="{Binding PackageFileName, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Grid.Row="5"
+                   Text="Mode auth"
+                   Foreground="#E8ECF3"
+                   VerticalAlignment="Center"
+                   Margin="0,10,12,0"/>
+        <TextBox Grid.Row="5"
+                 Grid.Column="1"
+                 Margin="0,10,0,0"
+                 Height="32"
+                 Background="#252932"
+                 Foreground="White"
+                 BorderBrush="#3A3F4B"
+                 ToolTip="Basic, Bearer, ApiKey ou None"
+                 Text="{Binding AuthMode, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Grid.Row="6"
+                   Text="Utilisateur"
+                   Foreground="#E8ECF3"
+                   VerticalAlignment="Center"
+                   Margin="0,10,12,0"/>
+        <TextBox Grid.Row="6"
+                 Grid.Column="1"
+                 Margin="0,10,0,0"
+                 Height="32"
+                 Background="#252932"
+                 Foreground="White"
+                 BorderBrush="#3A3F4B"
+                 Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
+
+        <StackPanel Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,0">
+            <TextBlock Text="Token / API key / mot de passe"
+                       Foreground="#E8ECF3"
+                       Margin="0,0,0,6"/>
+            <TextBox Height="32"
+                     Background="#252932"
+                     Foreground="White"
+                     BorderBrush="#3A3F4B"
+                     Text="{Binding AccessToken, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Text="Chemin attendu : &lt;URL Artifactory&gt;/&lt;repository&gt;/&lt;prefix optionnel&gt;/&lt;semver&gt;/&lt;zip&gt;. Les variables d'environnement VERSIONMANAGER_ARTIFACTORY_* surchargent ces valeurs."
+                       TextWrapping="Wrap"
+                       Foreground="#AAB0BC"
+                       Margin="0,8,0,0"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="8"
+                    Grid.ColumnSpan="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="0,16,0,0">
