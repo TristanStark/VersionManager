@@ -1,21 +1,21 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Windows;
 using Microsoft.Win32;
 using VersionManager.Helpers;
 using VersionManager.Models;
 using VersionManager.Services.Interfaces;
 using VersionManager.ViewModels.Base;
-using System.Windows;
-using VersionManager.Models;
-using VersionManager.Services.Interfaces;
-using System.Runtime.Serialization;
 
 namespace VersionManager.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase
 {
-    private readonly IApiService _apiService;
+    private IApiService _apiService;
     private readonly IZipService _zipService;
+    private readonly ISettingsService _settingsService;
+    private IVersionBuildService _versionBuildService;
+    private AppSettings _appSettings;
 
     private string _latestVersion = "-";
     private string _apiUrl = "";
@@ -34,13 +34,9 @@ public sealed class MainViewModel : ViewModelBase
     private string _selectedFileModified = "-";
     private string _selectedFileSha256 = "-";
 
-    private readonly ISettingsService _settingsService;
-    private AppSettings _appSettings;
-
     private VersionInfo? _selectedVersion;
     private ZipTreeNodeViewModel? _selectedZipNode;
     private bool _isBusy;
-    private readonly IVersionBuildService _versionBuildService;
 
     public string LatestVersion
     {
@@ -164,7 +160,6 @@ public sealed class MainViewModel : ViewModelBase
     public AsyncRelayCommand CreateNewVersionCommand { get; }
     public RelayCommand OpenApiSettingsCommand { get; }
 
-
     public MainViewModel()
         : this(new Services.ApiService(), new Services.ZipService(), new Services.SettingsService())
     {
@@ -178,10 +173,10 @@ public sealed class MainViewModel : ViewModelBase
         _apiService = apiService;
         _zipService = zipService;
         _settingsService = settingsService;
-        _versionBuildService = new Services.VersionBuildService();
 
         _appSettings = _settingsService.Load();
         _apiUrl = _appSettings.ApiUrl;
+        _versionBuildService = new Services.VersionBuildService(_appSettings);
 
         RefreshCommand = new AsyncRelayCommand(RefreshDataAsync);
         BrowseZipCommand = new RelayCommand(BrowseZip);
@@ -195,12 +190,12 @@ public sealed class MainViewModel : ViewModelBase
     private void InitializeWorkflow()
     {
         WorkflowSteps.Clear();
-        WorkflowSteps.Add(new WorkflowStep { Label = "Sélectionner le ZIP", State = "Pending" });
-        WorkflowSteps.Add(new WorkflowStep { Label = "Télécharger la version actuelle", State = "Pending" });
-        WorkflowSteps.Add(new WorkflowStep { Label = "Appliquer les modifications", State = "Pending" });
-        WorkflowSteps.Add(new WorkflowStep { Label = "Saisir le nouveau numéro", State = "Pending" });
-        WorkflowSteps.Add(new WorkflowStep { Label = "Recréer l’archive", State = "Pending" });
-        WorkflowSteps.Add(new WorkflowStep { Label = "Envoyer à l’API", State = "Pending" });
+        WorkflowSteps.Add(new WorkflowStep { Label = "Sélectionner le ZIP de patch", State = "Pending" });
+        WorkflowSteps.Add(new WorkflowStep { Label = "Télécharger la version courante Artifactory", State = "Pending" });
+        WorkflowSteps.Add(new WorkflowStep { Label = "Appliquer le patch", State = "Pending" });
+        WorkflowSteps.Add(new WorkflowStep { Label = "Calculer la nouvelle SemVer", State = "Pending" });
+        WorkflowSteps.Add(new WorkflowStep { Label = "Créer l'archive finale", State = "Pending" });
+        WorkflowSteps.Add(new WorkflowStep { Label = "Publier sur Artifactory", State = "Pending" });
     }
 
     private async Task RefreshDataAsync()
@@ -209,7 +204,7 @@ public sealed class MainViewModel : ViewModelBase
         {
             IsBusy = true;
             ProgressValue = 10;
-            AddLog("Chargement des informations API...");
+            AddLog("Chargement des informations Artifactory...");
 
             var status = await _apiService.GetApiStatusAsync();
             LatestVersion = status.LatestVersion;
@@ -230,6 +225,7 @@ public sealed class MainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            IsApiConnected = false;
             AddLog($"Erreur lors du rafraîchissement : {ex.Message}");
         }
         finally
@@ -243,7 +239,7 @@ public sealed class MainViewModel : ViewModelBase
         var dialog = new OpenFileDialog
         {
             Filter = "Fichiers ZIP (*.zip)|*.zip",
-            Title = "Sélectionner un ZIP d'update"
+            Title = "Sélectionner un ZIP de patch"
         };
 
         if (dialog.ShowDialog() != true)
@@ -260,7 +256,7 @@ public sealed class MainViewModel : ViewModelBase
             var fileInfo = new FileInfo(zipPath);
             SelectedZipSizeBytes = fileInfo.Length;
 
-            AddLog($"ZIP sélectionné : {zipPath}");
+            AddLog($"ZIP de patch sélectionné : {zipPath}");
             ProgressValue = 20;
 
             var entries = _zipService.ReadEntries(zipPath);
@@ -287,16 +283,6 @@ public sealed class MainViewModel : ViewModelBase
         {
             IsBusy = false;
         }
-    }
-
-    private void CreateNewVersion()
-    {
-        AddLog("Workflow 'Créer nouvelle version' à brancher : download version courante, merge, saisie version, rezip, upload.");
-        SetWorkflowState(1, "Pending");
-        SetWorkflowState(2, "Pending");
-        SetWorkflowState(3, "Pending");
-        SetWorkflowState(4, "Pending");
-        SetWorkflowState(5, "Pending");
     }
 
     private void UpdateSelectedNodeDetails()
@@ -347,7 +333,7 @@ public sealed class MainViewModel : ViewModelBase
 
     private void OpenApiSettings()
     {
-        var window = new ApiSettingsWindow(ApiUrl)
+        var window = new ApiSettingsWindow(_appSettings)
         {
             Owner = Application.Current.MainWindow
         };
@@ -356,17 +342,28 @@ public sealed class MainViewModel : ViewModelBase
         if (result != true)
             return;
 
-        ApiUrl = window.ApiUrl.Trim();
-
-        if (!Uri.TryCreate(window.ApiUrl.Trim(), UriKind.Absolute, out _))
+        AppSettings updatedSettings = window.ToAppSettings();
+        if (!Uri.TryCreate(updatedSettings.ApiUrl.Trim(), UriKind.Absolute, out _))
         {
-            MessageBox.Show("L'URL saisie n'est pas valide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("L'URL Artifactory saisie n'est pas valide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
-        _appSettings.ApiUrl = ApiUrl;
-        _settingsService.Save(_appSettings);
 
-        AddLog($"URL API mise à jour : {ApiUrl}");
+        if (string.IsNullOrWhiteSpace(updatedSettings.RepositoryKey))
+        {
+            MessageBox.Show("La clé du dépôt Artifactory est obligatoire.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        _appSettings = updatedSettings;
+        _settingsService.Save(_appSettings);
+        ApiUrl = _appSettings.ApiUrl;
+
+        _apiService = new Services.ApiService(_appSettings);
+        _versionBuildService = new Services.VersionBuildService(_appSettings);
+
+        AddLog($"Paramètres Artifactory mis à jour : {_appSettings.ApiUrl}/{_appSettings.RepositoryKey}");
+        _ = RefreshDataAsync();
     }
 
     private void ClearSelectedFileDetails()
@@ -394,7 +391,7 @@ public sealed class MainViewModel : ViewModelBase
 
     public static string IncrementVersion(string version, int maxPerSegment = 9)
     {
-        if (string.IsNullOrWhiteSpace(version))
+        if (string.IsNullOrWhiteSpace(version) || version == "-")
             throw new ArgumentException("La version ne peut pas être vide.", nameof(version));
 
         string[] parts = version.Split('.');
@@ -432,7 +429,6 @@ public sealed class MainViewModel : ViewModelBase
 
         if (carry == 1)
         {
-            // Cas où tout a débordé : 9.9.9 -> 1.0.0.0
             int[] extended = new int[numbers.Length + 1];
             extended[0] = 1;
             Array.Copy(numbers, 0, extended, 1, numbers.Length);
@@ -441,6 +437,7 @@ public sealed class MainViewModel : ViewModelBase
 
         return string.Join(".", numbers);
     }
+
     private string? GetNewVersionNumber()
     {
         string oldVersion = LatestVersion;
@@ -462,6 +459,7 @@ public sealed class MainViewModel : ViewModelBase
         try
         {
             IsBusy = true;
+            SetWorkflowState(3, "Done");
             AddLog($"Démarrage de la création de la version {newVersion}...");
 
             var logProgress = new Progress<string>(msg => AddLog(msg));
@@ -476,7 +474,13 @@ public sealed class MainViewModel : ViewModelBase
             AddLog(result.Message);
 
             if (result.Success)
+            {
+                SetWorkflowState(1, "Done");
+                SetWorkflowState(2, "Done");
+                SetWorkflowState(4, "Done");
+                SetWorkflowState(5, "Done");
                 await RefreshDataAsync();
+            }
         }
         catch (Exception ex)
         {
