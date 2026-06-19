@@ -3,52 +3,68 @@ using VersionManager.Services.Interfaces;
 
 namespace VersionManager.Services;
 
+/// <summary>
+/// Exposes version information to the ViewModel through the Artifactory-backed API abstraction.
+/// </summary>
 public sealed class ApiService : IApiService
 {
-    public Task<ApiStatusInfo> GetApiStatusAsync()
+    private readonly IArtifactoryService _artifactoryService;
+    private readonly AppSettings _settings;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ApiService" /> class using settings.json.
+    /// </summary>
+    public ApiService()
+        : this(new SettingsService().Load())
     {
-        return Task.FromResult(new ApiStatusInfo
-        {
-            IsConnected = true,
-            ApiUrl = "https://api.exemple.com",
-            LastPingTime = DateTime.Now,
-            LatestVersion = "2.4.1"
-        });
     }
 
-    public Task<List<VersionInfo>> GetVersionHistoryAsync()
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ApiService" /> class.
+    /// </summary>
+    public ApiService(AppSettings settings)
+        : this(settings, new ArtifactoryService(settings))
     {
-        var data = new List<VersionInfo>
-        {
-            new()
-            {
-                VersionNumber = "2.4.1",
-                CreatedAt = DateTime.Now.AddDays(-1),
-                Author = "Alice",
-                Description = "Correctifs mineurs",
-                Status = "En ligne",
-                ZipSizeBytes = 5_200_000
-            },
-            new()
-            {
-                VersionNumber = "2.4.0",
-                CreatedAt = DateTime.Now.AddDays(-7),
-                Author = "Bob",
-                Description = "Ajout nouvelles fonctionnalités",
-                Status = "En ligne",
-                ZipSizeBytes = 7_800_000
-            },
-            new()
-            {
-                VersionNumber = "2.3.8",
-                CreatedAt = DateTime.Now.AddDays(-18),
-                Author = "Charlie",
-                Description = "Bug fixes",
-                Status = "Archivée",
-                ZipSizeBytes = 4_500_000
-            }
-        };
+    }
 
-        return Task.FromResult(data);
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ApiService" /> class.
+    /// </summary>
+    public ApiService(AppSettings settings, IArtifactoryService artifactoryService)
+    {
+        _settings = settings;
+        _artifactoryService = artifactoryService;
+    }
+
+    /// <inheritdoc />
+    public async Task<ApiStatusInfo> GetApiStatusAsync()
+    {
+        try
+        {
+            string latestVersion = await _artifactoryService.GetLatestVersionAsync();
+            return new ApiStatusInfo
+            {
+                IsConnected = true,
+                ApiUrl = _settings.ApiUrl,
+                LastPingTime = DateTime.Now,
+                LatestVersion = latestVersion
+            };
+        }
+        catch
+        {
+            return new ApiStatusInfo
+            {
+                IsConnected = false,
+                ApiUrl = _settings.ApiUrl,
+                LastPingTime = DateTime.Now,
+                LatestVersion = "-"
+            };
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<List<VersionInfo>> GetVersionHistoryAsync()
+    {
+        return await _artifactoryService.GetVersionHistoryAsync();
     }
 }
