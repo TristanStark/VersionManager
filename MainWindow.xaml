@@ -535,7 +535,7 @@
                                                                     CornerRadius="6"
                                                                     Padding="1">
                                                                 <DataGrid ItemsSource="{Binding Builds}"
-                                                                          SelectedItem="{Binding DataContext.SelectedVersion, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                                                          SelectedItem="{Binding DataContext.SelectedVersion, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWayToSource}"
                                                                           AutoGenerateColumns="False"
                                                                           SelectionMode="Single"
                                                                           SelectionUnit="FullRow"
