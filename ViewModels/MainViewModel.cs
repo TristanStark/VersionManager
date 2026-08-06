@@ -1,19 +1,19 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Text.RegularExpressions;
+using System.Windows;
 using Microsoft.Win32;
 using VersionManager.Helpers;
 using VersionManager.Models;
 using VersionManager.Services.Interfaces;
 using VersionManager.ViewModels.Base;
-using System.Windows;
-using VersionManager.Models;
-using VersionManager.Services.Interfaces;
-using System.Runtime.Serialization;
 
 namespace VersionManager.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase
 {
+    private static readonly Regex NumberRegex = new(@"\d+", RegexOptions.Compiled);
+
     private readonly IApiService _apiService;
     private readonly IZipService _zipService;
 
@@ -39,6 +39,7 @@ public sealed class MainViewModel : ViewModelBase
 
     private VersionInfo? _selectedVersion;
     private ZipTreeNodeViewModel? _selectedZipNode;
+    private string _versionSearchText = "";
     private bool _isBusy;
     private readonly IVersionBuildService _versionBuildService;
 
@@ -135,7 +136,25 @@ public sealed class MainViewModel : ViewModelBase
     public VersionInfo? SelectedVersion
     {
         get => _selectedVersion;
-        set => SetProperty(ref _selectedVersion, value);
+        set
+        {
+            if (!SetProperty(ref _selectedVersion, value))
+                return;
+
+            DownloadSelectedVersionCommand.RaiseCanExecuteChanged();
+        }
+    }
+
+    public string VersionSearchText
+    {
+        get => _versionSearchText;
+        set
+        {
+            if (!SetProperty(ref _versionSearchText, value))
+                return;
+
+            RebuildVersionHierarchy();
+        }
     }
 
     public ZipTreeNodeViewModel? SelectedZipNode
@@ -155,6 +174,7 @@ public sealed class MainViewModel : ViewModelBase
     }
 
     public ObservableCollection<VersionInfo> VersionHistory { get; } = new();
+    public ObservableCollection<MajorVersionNodeViewModel> VersionHierarchy { get; } = new();
     public ObservableCollection<WorkflowStep> WorkflowSteps { get; } = new();
     public ObservableCollection<string> Logs { get; } = new();
     public ObservableCollection<ZipTreeNodeViewModel> ZipTreeRoots { get; } = new();
@@ -163,7 +183,7 @@ public sealed class MainViewModel : ViewModelBase
     public RelayCommand BrowseZipCommand { get; }
     public AsyncRelayCommand CreateNewVersionCommand { get; }
     public RelayCommand OpenApiSettingsCommand { get; }
-
+    public RelayCommand DownloadSelectedVersionCommand { get; }
 
     public MainViewModel()
         : this(new Services.ApiService(), new Services.ZipService(), new Services.SettingsService())
@@ -187,6 +207,9 @@ public sealed class MainViewModel : ViewModelBase
         BrowseZipCommand = new RelayCommand(BrowseZip);
         CreateNewVersionCommand = new AsyncRelayCommand(CreateNewVersionAsync);
         OpenApiSettingsCommand = new RelayCommand(OpenApiSettings);
+        DownloadSelectedVersionCommand = new RelayCommand(
+            DownloadSelectedVersion,
+            () => SelectedVersion is not null);
 
         InitializeWorkflow();
         _ = RefreshDataAsync();
@@ -224,6 +247,10 @@ public sealed class MainViewModel : ViewModelBase
             VersionHistory.Clear();
             foreach (var item in history)
                 VersionHistory.Add(item);
+
+            // UI adapter only. The Artifactory connector can later populate
+            // VersionHierarchy directly with vXX / pXX folders.
+            RebuildVersionHierarchy();
 
             ProgressValue = 100;
             AddLog("Rafraîchissement terminé.");
@@ -363,10 +390,124 @@ public sealed class MainViewModel : ViewModelBase
             MessageBox.Show("L'URL saisie n'est pas valide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
+
         _appSettings.ApiUrl = ApiUrl;
         _settingsService.Save(_appSettings);
 
         AddLog($"URL API mise à jour : {ApiUrl}");
+    }
+
+    private void DownloadSelectedVersion()
+    {
+        // Visual connector only: replace this placeholder with the Artifactory
+        // download call once the repository path is exposed by VersionInfo.
+        AddLog($"Téléchargement à brancher pour : {SelectedVersion?.VersionNumber ?? "-"}");
+    }
+
+    private void RebuildVersionHierarchy()
+    {
+        IEnumerable<VersionInfo> versions = VersionHistory;
+        string search = VersionSearchText.Trim();
+
+        if (!string.IsNullOrWhiteSpace(search))
+            versions = versions.Where(version => MatchesVersionSearch(version, search));
+
+        var visibleVersions = versions.ToList();
+
+        if (SelectedVersion is not null && !visibleVersions.Contains(SelectedVersion))
+            SelectedVersion = null;
+
+        var groupedVersions = visibleVersions
+            .Select(version => new
+            {
+                Version = version,
+                Path = ParseVersionPath(version.VersionNumber)
+            })
+            .GroupBy(item => item.Path.Major, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(group => ExtractNumericValue(group.Key))
+            .ThenByDescending(group => group.Key, StringComparer.OrdinalIgnoreCase);
+
+        VersionHierarchy.Clear();
+
+        foreach (var majorGroup in groupedVersions)
+        {
+            var majorNode = new MajorVersionNodeViewModel
+            {
+                Name = majorGroup.Key
+            };
+
+            var patchGroups = majorGroup
+                .GroupBy(item => item.Path.Patch, StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(group => ExtractNumericValue(group.Key))
+                .ThenByDescending(group => group.Key, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var patchGroup in patchGroups)
+            {
+                var patchNode = new PatchVersionNodeViewModel
+                {
+                    Name = patchGroup.Key
+                };
+
+                foreach (var version in patchGroup
+                             .Select(item => item.Version)
+                             .OrderByDescending(item => item.CreatedAt))
+                {
+                    patchNode.Builds.Add(version);
+                }
+
+                majorNode.Patches.Add(patchNode);
+            }
+
+            VersionHierarchy.Add(majorNode);
+        }
+    }
+
+    private static bool MatchesVersionSearch(VersionInfo version, string search)
+    {
+        return version.VersionNumber.Contains(search, StringComparison.OrdinalIgnoreCase)
+               || version.Author.Contains(search, StringComparison.OrdinalIgnoreCase)
+               || version.Description.Contains(search, StringComparison.OrdinalIgnoreCase)
+               || version.Status.Contains(search, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static (string Major, string Patch) ParseVersionPath(string versionNumber)
+    {
+        string[] pathSegments = versionNumber
+            .Replace('\\', '/')
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        string? major = pathSegments.FirstOrDefault(segment =>
+            segment.StartsWith("v", StringComparison.OrdinalIgnoreCase)
+            && NumberRegex.IsMatch(segment));
+
+        string? patch = pathSegments.FirstOrDefault(segment =>
+            segment.StartsWith("p", StringComparison.OrdinalIgnoreCase)
+            && NumberRegex.IsMatch(segment));
+
+        if (major is not null && patch is not null)
+            return (major, patch);
+
+        // Compatibility adapter for the current dotted history format.
+        string[] dottedSegments = versionNumber.Split(
+            '.',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (dottedSegments.Length >= 2
+            && int.TryParse(dottedSegments[0].TrimStart('v', 'V'), out int majorNumber)
+            && int.TryParse(dottedSegments[1].TrimStart('p', 'P'), out int patchNumber))
+        {
+            return ($"v{majorNumber}", $"p{patchNumber}");
+        }
+
+        return (major ?? "Autres versions", patch ?? "Non classé");
+    }
+
+    private static int ExtractNumericValue(string value)
+    {
+        Match match = NumberRegex.Match(value);
+        return match.Success && int.TryParse(match.Value, out int result)
+            ? result
+            : -1;
     }
 
     private void ClearSelectedFileDetails()
@@ -441,6 +582,7 @@ public sealed class MainViewModel : ViewModelBase
 
         return string.Join(".", numbers);
     }
+
     private string? GetNewVersionNumber()
     {
         string oldVersion = LatestVersion;
