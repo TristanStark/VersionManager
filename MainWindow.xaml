@@ -1,4 +1,4 @@
-﻿<Window x:Class="VersionManager.MainWindow"
+<Window x:Class="VersionManager.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -80,7 +80,7 @@
         </Style>
 
         <HierarchicalDataTemplate DataType="{x:Type vm:ZipTreeNodeViewModel}"
-                          ItemsSource="{Binding Children}">
+                                  ItemsSource="{Binding Children}">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{Binding Icon}" Margin="0,0,8,0" Foreground="#E8ECF3"/>
                 <TextBlock Text="{Binding Name}" Foreground="#E8ECF3"/>
@@ -88,7 +88,7 @@
                 <TextBlock Text="{Binding DisplaySize}" Foreground="#9AA7B8"/>
             </StackPanel>
         </HierarchicalDataTemplate>
-        
+
         <Style TargetType="TreeView">
             <Setter Property="Background" Value="#252932"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -115,46 +115,43 @@
                             </Grid.RowDefinitions>
 
                             <ToggleButton x:Name="Expander"
-                                  ClickMode="Press"
-                                  IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
-                                  Width="16"
-                                  Height="16"
-                                  Margin="2"
-                                  Focusable="False"
-                                  Foreground="#E8ECF3"
-                                  Background="Transparent"
-                                  BorderBrush="Transparent"
-                                  Template="{StaticResource ExpandCollapseToggleStyle}"/>
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Width="16"
+                                          Height="16"
+                                          Margin="2"
+                                          Focusable="False"
+                                          Foreground="#E8ECF3"
+                                          Background="Transparent"
+                                          BorderBrush="Transparent"
+                                          Template="{StaticResource ExpandCollapseToggleStyle}"/>
 
                             <Border x:Name="Bd"
-                            Grid.Column="1"
-                            Background="Transparent"
-                            CornerRadius="4"
-                            Padding="{TemplateBinding Padding}">
+                                    Grid.Column="1"
+                                    Background="Transparent"
+                                    CornerRadius="4"
+                                    Padding="{TemplateBinding Padding}">
                                 <ContentPresenter x:Name="PART_Header"
-                                          ContentSource="Header"
-                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                                  ContentSource="Header"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
                             </Border>
 
                             <ItemsPresenter x:Name="ItemsHost"
-                                    Grid.Row="1"
-                                    Grid.Column="1"
-                                    Visibility="Collapsed"/>
+                                            Grid.Row="1"
+                                            Grid.Column="1"
+                                            Visibility="Collapsed"/>
                         </Grid>
 
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsExpanded" Value="True">
                                 <Setter TargetName="ItemsHost" Property="Visibility" Value="Visible"/>
                             </Trigger>
-
                             <Trigger Property="HasItems" Value="False">
                                 <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
                             </Trigger>
-
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="#374151"/>
                             </Trigger>
-
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="#2C313C"/>
                             </Trigger>
@@ -173,14 +170,83 @@
                     <ControlTemplate TargetType="ToggleButton">
                         <Border Background="Transparent">
                             <TextBlock x:Name="Arrow"
-                               Text="▶"
-                               Foreground="#E8ECF3"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"/>
+                                       Text="▶"
+                                       Foreground="#E8ECF3"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="Arrow" Property="Text" Value="▼"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Tree-like expanders used by the major / patch / build history. -->
+        <Style x:Key="VersionExpanderToggleStyle" TargetType="ToggleButton">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="Arrow"
+                                       Text="▶"
+                                       Foreground="#AAB4C3"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="11"/>
+                            <ContentPresenter Grid.Column="1"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Arrow" Property="Text" Value="▼"/>
+                                <Setter TargetName="Arrow" Property="Foreground" Value="#F59E0B"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="VersionExpanderStyle" TargetType="Expander">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Expander">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <ToggleButton x:Name="HeaderSite"
+                                          Grid.Row="0"
+                                          Content="{TemplateBinding Header}"
+                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Style="{StaticResource VersionExpanderToggleStyle}"/>
+                            <ContentPresenter x:Name="ExpandSite"
+                                              Grid.Row="1"
+                                              ContentSource="Content"
+                                              Visibility="Collapsed"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -279,22 +345,22 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Text="Connexion API"
-                               Style="{StaticResource SectionTitleStyle}"
-                               Margin="0,0,0,0"/>
+                                       Style="{StaticResource SectionTitleStyle}"
+                                       Margin="0,0,0,0"/>
                             <Button Grid.Column="1"
-                                Command="{Binding OpenApiSettingsCommand}"
-                                Width="32"
-                                Height="32"
-                                Padding="0"
-                                Margin="8,0,0,0"
-                                Background="#2C313C"
-                                BorderBrush="#3A3F4B"
-                                ToolTip="Modifier l'URL de l'API">
-                                                        <TextBlock Text="⚙"
-                                       FontSize="15"
-                                       Foreground="#E8ECF3"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
+                                    Command="{Binding OpenApiSettingsCommand}"
+                                    Width="32"
+                                    Height="32"
+                                    Padding="0"
+                                    Margin="8,0,0,0"
+                                    Background="#2C313C"
+                                    BorderBrush="#3A3F4B"
+                                    ToolTip="Modifier l'URL de l'API">
+                                <TextBlock Text="⚙"
+                                           FontSize="15"
+                                           Foreground="#E8ECF3"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
                             </Button>
                         </Grid>
 
@@ -305,7 +371,7 @@
                         </StackPanel>
                     </Grid>
                 </Border>
-                
+
                 <Border Style="{StaticResource CardBorderStyle}">
                     <StackPanel>
                         <TextBlock Text="ZIP sélectionné" Style="{StaticResource SectionTitleStyle}"/>
@@ -335,38 +401,184 @@
                 </Border>
             </StackPanel>
 
-            <!-- Center panel -->
+            <!-- Center panel: version major -> patch -> builds -->
             <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
                 <DockPanel>
-                    <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="300"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel>
-                            <TextBlock Text="Historique des versions" Style="{StaticResource SectionTitleStyle}"/>
-                            <TextBox Height="32" Text=""/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Versions disponibles" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,4"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding VersionHierarchy.Count, StringFormat={}{0} version(s) majeure(s)}"
+                                           Foreground="#9AA7B8" FontSize="12"/>
+                                <TextBlock Text="  •  " Foreground="#657083" FontSize="12"/>
+                                <TextBlock Text="{Binding VersionHistory.Count, StringFormat={}{0} build(s)}"
+                                           Foreground="#9AA7B8" FontSize="12"/>
+                            </StackPanel>
                         </StackPanel>
 
-                        <Button Grid.Column="1"
-                                Content="Télécharger"
-                                VerticalAlignment="Bottom"
-                                Padding="16,8"/>
+                        <StackPanel Grid.Column="1" Margin="16,0,16,0">
+                            <TextBlock Text="Filtrer versions, auteurs ou statuts"
+                                       Foreground="#9AA7B8"
+                                       FontSize="12"
+                                       Margin="0,0,0,4"/>
+                            <TextBox Height="34"
+                                     Text="{Binding VersionSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Exemples : v20, p37, build2, auteur, statut"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+                            <Button Content="Télécharger le build"
+                                    Command="{Binding DownloadSelectedVersionCommand}"
+                                    Padding="16,8"/>
+                            <TextBlock Text="{Binding SelectedVersion.VersionNumber, TargetNullValue='Aucun build sélectionné'}"
+                                       Foreground="#9AA7B8"
+                                       FontSize="11"
+                                       HorizontalAlignment="Right"
+                                       Margin="0,5,0,0"/>
+                        </StackPanel>
                     </Grid>
 
-                    <DataGrid ItemsSource="{Binding VersionHistory}"
-                              SelectedItem="{Binding SelectedVersion}"
-                              AutoGenerateColumns="False">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Version" Binding="{Binding VersionNumber}" Width="100"/>
-                            <DataGridTextColumn Header="Date" Binding="{Binding CreatedAt, StringFormat=dd/MM/yyyy HH:mm}" Width="150"/>
-                            <DataGridTextColumn Header="Auteur" Binding="{Binding Author}" Width="120"/>
-                            <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
-                            <DataGridTextColumn Header="Statut" Binding="{Binding Status}" Width="100"/>
-                            <DataGridTextColumn Header="Taille" Binding="{Binding ZipSizeReadable}" Width="120"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <Grid>
+                            <ItemsControl ItemsSource="{Binding VersionHierarchy}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:MajorVersionNodeViewModel}">
+                                        <Expander Style="{StaticResource VersionExpanderStyle}"
+                                                  IsExpanded="True"
+                                                  Margin="0,0,0,10">
+                                            <Expander.Header>
+                                                <Border Background="#2C313C"
+                                                        BorderBrush="#3F4654"
+                                                        BorderThickness="1"
+                                                        CornerRadius="7"
+                                                        Padding="12,9">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Border Background="#F59E0B"
+                                                                    CornerRadius="4"
+                                                                    Padding="7,3"
+                                                                    Margin="0,0,10,0">
+                                                                <TextBlock Text="MAJEURE"
+                                                                           Foreground="#17191D"
+                                                                           FontWeight="Bold"
+                                                                           FontSize="10"/>
+                                                            </Border>
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       FontSize="17"
+                                                                       FontWeight="SemiBold"
+                                                                       VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding PatchCount, StringFormat={}{0} patch(s)}"
+                                                                       Foreground="#BFC7D5"
+                                                                       Margin="0,0,14,0"/>
+                                                            <TextBlock Text="{Binding BuildCount, StringFormat={}{0} build(s)}"
+                                                                       Foreground="#BFC7D5"
+                                                                       Margin="0,0,14,0"/>
+                                                            <TextBlock Text="{Binding LatestBuildDate, StringFormat={}{0:dd/MM/yyyy}}"
+                                                                       Foreground="#8D99AA"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </Expander.Header>
+
+                                            <ItemsControl ItemsSource="{Binding Patches}" Margin="28,8,0,0">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type vm:PatchVersionNodeViewModel}">
+                                                        <Expander Style="{StaticResource VersionExpanderStyle}"
+                                                                  Margin="0,0,0,8">
+                                                            <Expander.Header>
+                                                                <Border Background="#242832"
+                                                                        BorderBrush="#383E4A"
+                                                                        BorderThickness="1"
+                                                                        CornerRadius="6"
+                                                                        Padding="11,8">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <StackPanel Orientation="Horizontal">
+                                                                            <TextBlock Text="Patch"
+                                                                                       Foreground="#8D99AA"
+                                                                                       Margin="0,0,8,0"/>
+                                                                            <TextBlock Text="{Binding Name}"
+                                                                                       FontWeight="SemiBold"
+                                                                                       Foreground="#E8ECF3"/>
+                                                                        </StackPanel>
+                                                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                                            <TextBlock Text="{Binding BuildCount, StringFormat={}{0} build(s)}"
+                                                                                       Foreground="#AAB4C3"
+                                                                                       Margin="0,0,14,0"/>
+                                                                            <TextBlock Text="{Binding LatestBuildDate, StringFormat={}{0:dd/MM/yyyy HH:mm}}"
+                                                                                       Foreground="#7E899A"/>
+                                                                        </StackPanel>
+                                                                    </Grid>
+                                                                </Border>
+                                                            </Expander.Header>
+
+                                                            <Border Margin="28,6,0,2"
+                                                                    Background="#1F232B"
+                                                                    BorderBrush="#343A45"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="6"
+                                                                    Padding="1">
+                                                                <DataGrid ItemsSource="{Binding Builds}"
+                                                                          SelectedItem="{Binding DataContext.SelectedVersion, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                                                          AutoGenerateColumns="False"
+                                                                          SelectionMode="Single"
+                                                                          SelectionUnit="FullRow"
+                                                                          MaxHeight="320"
+                                                                          MinHeight="92">
+                                                                    <DataGrid.Columns>
+                                                                        <DataGridTextColumn Header="Build" Binding="{Binding VersionNumber}" Width="120"/>
+                                                                        <DataGridTextColumn Header="Date" Binding="{Binding CreatedAt, StringFormat=dd/MM/yyyy HH:mm}" Width="145"/>
+                                                                        <DataGridTextColumn Header="Auteur" Binding="{Binding Author}" Width="115"/>
+                                                                        <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+                                                                        <DataGridTextColumn Header="Statut" Binding="{Binding Status}" Width="90"/>
+                                                                        <DataGridTextColumn Header="Taille" Binding="{Binding ZipSizeReadable}" Width="105"/>
+                                                                    </DataGrid.Columns>
+                                                                </DataGrid>
+                                                            </Border>
+                                                        </Expander>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock Text="Aucune version ne correspond au filtre."
+                                       Foreground="#9AA7B8"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="20"
+                                       FontStyle="Italic">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding VersionHierarchy.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </ScrollViewer>
                 </DockPanel>
             </Border>
 
@@ -384,7 +596,7 @@
                                    DockPanel.Dock="Top"/>
 
                         <TreeView ItemsSource="{Binding ZipTreeRoots}"
-                                SelectedItemChanged="ZipTreeView_SelectedItemChanged">
+                                  SelectedItemChanged="ZipTreeView_SelectedItemChanged">
                             <TreeView.ItemContainerStyle>
                                 <Style TargetType="TreeViewItem">
                                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
